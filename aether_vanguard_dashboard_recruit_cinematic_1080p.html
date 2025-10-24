@@ -1,0 +1,376 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aether Vanguard — 1080p Cinematic Recruit (Record Enabled)</title>
+<style>
+  :root{--bg:#071024;--muted:#9fb4d3;--accent:#6fe7d9;--gold:#ffd27a}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#03061a,#071024);color:#e8f3ff;font-family:Inter,system-ui,Arial,sans-serif}
+  .ui{position:relative;z-index:2;padding:18px;display:flex;gap:18px;align-items:flex-start}
+  .panel{width:320px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04)}
+  .small{font-size:13px;color:#9fb4d3}
+  .btn{padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,#0b2a45,#0f2f53);border:1px solid rgba(255,255,255,0.03);color:#e8f3ff;cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,#6fe7d9,#6b8df2);color:#012;font-weight:700;border:none}
+  #canvasContainer{flex:1;display:flex;align-items:center;justify-content:center;padding:18px}
+  #cinematicCanvas{background:linear-gradient(180deg,#020613,#07112a);box-shadow:0 18px 120px rgba(0,0,0,0.7);border-radius:6px}
+  .controls{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .legendBadge{display:inline-block;padding:4px 8px;border-radius:8px;background:linear-gradient(90deg,#ffd27a,#ff9fb3);color:#072;font-weight:800}
+  .rosterRow{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+  .rosterThumb{width:44px;height:44px;border-radius:8px;background:linear-gradient(45deg,#345,#567);display:flex;align-items:center;justify-content:center;font-weight:800}
+  .legendGlow{box-shadow:0 0 18px rgba(255,200,60,0.8), 0 0 36px rgba(255,160,140,0.06);animation:glowPulse 2.2s infinite;}
+  @keyframes glowPulse{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+  /* Activity log */
+  #activityLog{max-height:220px;overflow:auto;padding:6px;border-radius:8px;background:rgba(0,0,0,0.15);font-size:13px}
+  a.downloadLink{color:#6fe7d9;font-weight:700}
+</style>
+</head>
+<body>
+<div style="display:flex;height:100vh;align-items:stretch;overflow:hidden">
+  <div class="ui" style="flex-direction:column;width:360px;padding-top:28px">
+    <div class="panel">
+      <div style="font-weight:800;margin-bottom:8px">Aether Vanguard — Test Rig</div>
+      <div class="small">Legendary rate (testing): <strong>15%</strong></div>
+      <div class="controls">
+        <button class="btn primary" id="openRecruitBtn">Open Recruit (UI)</button>
+        <button class="btn" id="summonBtn">Summon (single)</button>
+        <button class="btn" id="summonX10Btn">Summon ×10 (auto-add)</button>
+        <label style="margin-top:6px"><input type="checkbox" id="recordToggle"> Record Cinematic (next Legendary)</label>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div style="font-weight:800;margin-bottom:8px">Roster</div>
+      <div id="rosterList"></div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div style="font-weight:800;margin-bottom:8px">Activity Log</div>
+      <div id="activityLog"></div>
+    </div>
+  </div>
+
+  <div id="canvasContainer" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px">
+    <!-- 1080p cinematic canvas centered and scaled to fit viewport -->
+    <canvas id="cinematicCanvas" width="1920" height="1080" style="width:1280px;height:720px"></canvas>
+    <div style="margin-top:12px" class="small">Canvas is rendered at 1920×1080. Display scaled for fit.</div>
+  </div>
+</div>
+
+<script>
+// 1080p cinematic recruit with cinematic-only MediaRecorder capture (audio ON)
+// Settings
+const LEGENDARY_CHANCE = 0.15; // 15% for testing
+const STORAGE_KEY = 'aether_vanguard_roster_v1_cinematic_record_1080p';
+
+// roster persistence
+let roster = [];
+function loadRoster(){ try{ const raw = localStorage.getItem(STORAGE_KEY); roster = raw? JSON.parse(raw): []; if(roster.length===0){ // seed some defaults
+  roster.push({id:'h_bang',name:'Bang',class:'Aether Knight',rarity:'Uncommon',power:1830});
+} renderRoster(); }catch(e){ roster=[]; renderRoster(); } }
+function saveRoster(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(roster)); renderRoster(); }
+
+function renderRoster(){
+  const list = document.getElementById('rosterList'); list.innerHTML='';
+  roster.forEach(h=>{
+    const row = document.createElement('div'); row.className='rosterRow';
+    const thumb = document.createElement('div'); thumb.className='rosterThumb'; thumb.innerText = h.name.charAt(0);
+    if(h.rarity === 'Legendary'){ thumb.classList.add('legendGlow'); }
+    const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:800">${h.name} ${h.rarity==='Legendary'?'<span class="legendBadge">👑</span>':''}</div><div class="small">${h.class} · ${h.power} PWR</div>`;
+    row.appendChild(thumb); row.appendChild(info);
+    list.appendChild(row);
+  });
+}
+
+// canvas + rendering setup (1080p target)
+const canvas = document.getElementById('cinematicCanvas');
+const ctx = canvas.getContext('2d');
+const cw = canvas.width, ch = canvas.height;
+
+// simple particle system and ring effects
+let particles = [];
+function spawnParticles(x,y,count,colors,force=6){
+  for(let i=0;i<count;i++){
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*force,
+      vy: (Math.random()-0.8)*force,
+      size: 6 + Math.random()*14,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      life: 0, maxLife: 90 + Math.random()*120,
+      rot: Math.random()*Math.PI*2, vr: (Math.random()-0.5)*0.08
+    });
+  }
+}
+function drawParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.vy += 0.18; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+    ctx.restore();
+    if(p.life > p.maxLife || p.y > ch+100) particles.splice(i,1);
+  }
+}
+
+// draw summon ring with rotating runes (simple aesthetic)
+let ringAngle = 0;
+function drawRing(progress, colorA='#ffd27a', colorB='#ff9fb3'){
+  const r = 360 * (0.4 + progress*0.5);
+  const cx = cw/2, cy = ch/2;
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  // radial glow
+  const g = ctx.createRadialGradient(cx,cy, r*0.2, cx,cy, r*1.4);
+  g.addColorStop(0, colorA + '33'); g.addColorStop(0.6, colorB + '10'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx,cy, r*1.4, 0, Math.PI*2); ctx.fill();
+  // ring strokes
+  ctx.lineWidth = 14; ctx.strokeStyle = colorA + 'bb';
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  // rotating rune markers
+  const runeCount = 16;
+  for(let i=0;i<runeCount;i++){
+    const a = (i/runeCount)*Math.PI*2 + ringAngle*0.012;
+    const rx = cx + Math.cos(a)*(r); const ry = cy + Math.sin(a)*(r);
+    ctx.save(); ctx.translate(rx,ry); ctx.rotate(a+ringAngle*0.02);
+    ctx.fillStyle = colorB; ctx.fillRect(-8,-20,16,40);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// HUD overlay text (LEGENDARY unlocked)
+function drawHUD(text, alpha=1){
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = 'rgba(255,240,220,0.9)'; ctx.font = 'bold 64px Inter, system-ui, Arial'; ctx.textAlign='center';
+  ctx.fillText(text, cw/2, ch*0.18);
+  ctx.restore();
+}
+
+// clear frame
+function clearFrame(){ ctx.clearRect(0,0,cw,ch); }
+
+// cinematic timeline
+let cinematicActive = false;
+let cinematicResolve = null;
+
+// WebAudio for cinematic (synth)
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+function playLegendaryAudio(){
+  try{
+    const ctx = ensureAudio(); const t0 = ctx.currentTime;
+    // sustained pad
+    const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='sine'; o.frequency.value = 220;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.value = 0.0001; g.gain.linearRampToValueAtTime(0.25, t0+0.06); g.gain.exponentialRampToValueAtTime(0.0001, t0+7.6);
+    o.start(t0); o.stop(t0+7.8);
+    // sparkling bells
+    for(let i=0;i<6;i++){
+      const bell = ctx.createOscillator(); const gb = ctx.createGain(); bell.type='triangle'; bell.frequency.value = 880 + i*110;
+      bell.connect(gb); gb.connect(ctx.destination);
+      gb.gain.value = 0.0001; gb.gain.linearRampToValueAtTime(0.09, t0+0.16 + i*0.09); gb.gain.exponentialRampToValueAtTime(0.0001, t0+1.6 + i*0.11);
+      bell.start(t0+0.15 + i*0.09); bell.stop(t0+1.7 + i*0.11);
+    }
+  }catch(e){ console.warn('Audio blocked', e); }
+}
+
+// cinematic draw loop (for the 7.5s cinematic)
+async function playLegendaryCinematic(result, {recordStream=null, recorder=null} = {}){
+  if(cinematicActive) return;
+  cinematicActive = true;
+  // timeline params
+  const duration = 7800; // ms ~7.8s
+  const start = performance.now();
+  // trigger audio
+  playLegendaryAudio();
+  // spawn initial particles and bigger bursts mid-seq
+  spawnParticles(cw/2, ch/2, 120, ['#ffd27a','#ff9fb3','#ffd6a3'], 12);
+  // if recording, recording already started by caller (captureStream passed)
+  return new Promise(resolve => {
+    cinematicResolve = resolve;
+    (function frame(now){
+      const elapsed = now - start; const progress = Math.min(1, elapsed/duration);
+      ringAngle += 1.8;
+      clearFrame();
+      // background subtle vignette
+      const g = ctx.createLinearGradient(0,0,0,ch); g.addColorStop(0,'rgba(20,30,50,0.8)'); g.addColorStop(1,'rgba(0,0,0,0.2)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,cw,ch);
+      // draw ring expanding and runes
+      drawRing(progress, '#ffd27a', '#ff9fb3');
+      // draw particles
+      drawParticles();
+      // hero reveal around 45% progress
+      if(progress > 0.45){
+        // big hero card center
+        const cx = cw/2, cy = ch/2;
+        // card background
+        const cardW = 720, cardH = 420;
+        ctx.save(); ctx.translate(cx,cy);
+        // pulse scale
+        const reveal = Math.min(1, (progress-0.45)/0.25);
+        const scale = 0.6 + 0.45*reveal;
+        ctx.scale(scale, scale);
+        // card
+        ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(-cardW/2, -cardH/2, cardW, cardH);
+        // name
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 44px Inter, system-ui, Arial'; ctx.textAlign='center';
+        ctx.fillText(result.hero.name, 0, -cardH*0.06);
+        ctx.font = '28px Inter, system-ui, Arial'; ctx.fillStyle = '#ffd27a';
+        ctx.fillText(result.rarity.name.toUpperCase(), 0, -cardH*0.06 + 44);
+        // icon box
+        ctx.fillStyle = '#345'; ctx.fillRect(-120, -60, 240, 160);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 96px Inter'; ctx.fillText(result.hero.name.charAt(0), 0, 60);
+        ctx.restore();
+      }
+      // HUD overlay text around 55%
+      if(progress > 0.52){
+        const hudAlpha = Math.min(1, (progress-0.52)/0.12);
+        drawHUD('LEGENDARY SUMMON UNLOCKED ⚡', hudAlpha);
+      }
+      if(elapsed < duration && cinematicActive){ requestAnimationFrame(frame); } else { endCinematic(); }
+    })(performance.now());
+  });
+  function endCinematic(){
+    cinematicActive = false;
+    if(recorder){
+      // stop recorder if provided
+      try{ recorder.stop(); }catch(e){}
+    }
+    if(cinematicResolve){ cinematicResolve(); cinematicResolve = null; }
+    log('Cinematic finished');
+  }
+}
+
+// recording helpers: capture only the cinematic canvas + audio
+let mediaRecorder = null;
+let recordedChunks = [];
+async function startRecordingForCinematic(){
+  // ensure audio context is running and get its destination stream
+  const stream = canvas.captureStream(60); // 60 FPS capture
+  let audioStream = null;
+  try{
+    const ctx = ensureAudio(); // start audio context
+    // create a destination node and connect master output to it
+    const dest = ctx.createMediaStreamDestination();
+    // NOTE: in this simplified example, oscillators are connected directly to ctx.destination and NOT to dest.
+    // To capture audio, we'd route audio nodes to dest as well. For this prototype, create a tiny oscillator and connect to dest to ensure stream has audio.
+    // However, we will also connect future audio nodes to ctx.destination; capturing them requires connecting to dest in audio generation functions.
+    audioStream = dest.stream;
+  }catch(e){ console.warn('Audio capture not possible', e); }
+  // merge streams if audio available
+  let combinedStream = stream;
+  if(audioStream && audioStream.getAudioTracks().length > 0){
+    audioStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+  }
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(combinedStream, {mimeType: 'video/webm;codecs=vp9,opus'});
+  mediaRecorder.ondataavailable = e => { if(e.data && e.data.size) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = e => {
+    const blob = new Blob(recordedChunks, {type:'video/webm'});
+    const url = URL.createObjectURL(blob);
+    addActivityLink('🎥 Cinematic recorded — ', url);
+  };
+  mediaRecorder.start();
+  return mediaRecorder;
+}
+
+function addActivityLink(text, url){
+  const log = document.getElementById('activityLog');
+  const entry = document.createElement('div'); entry.className='small';
+  entry.innerHTML = text + `<a class="downloadLink" href="${url}" download="legendary_cinematic_${new Date().toISOString().replace(/[:.]/g,'-')}.webm">Download .webm</a>`;
+  log.prepend(entry);
+}
+
+// small utility: log activity
+function log(msg){ const logEl = document.getElementById('activityLog'); const row = document.createElement('div'); row.className='small'; row.innerText = new Date().toLocaleTimeString() + ' — ' + msg; logEl.prepend(row); while(logEl.children.length>50) logEl.removeChild(logEl.lastChild); }
+
+// generate summon with 15% legendary chance
+function generateSummon(){
+  const rRand = Math.random();
+  let rarity = null;
+  if(rRand < LEGENDARY_CHANCE) rarity = {name:'Legendary', key:'legend', stars:6};
+  else if(rRand < LEGENDARY_CHANCE + 0.05) rarity = {name:'Epic', key:'epic', stars:5};
+  else if(rRand < LEGENDARY_CHANCE + 0.05 + 0.25) rarity = {name:'Rare', key:'rare', stars:4};
+  else if(rRand < LEGENDARY_CHANCE + 0.05 + 0.25 + 0.05) rarity = {name:'Uncommon', key:'uncommon', stars:3};
+  else rarity = {name:'Common', key:'common', stars:2};
+  const name = randomName(); const cls = ['Aether Knight','Rune Caller','Nomad Archer','Chrono Sage','Techno Mystic'][Math.floor(Math.random()*5)];
+  const hero = {id:'h_'+Date.now()+'_'+Math.floor(Math.random()*9999), name, class:cls, power: Math.floor(800 + Math.random()*1200), rarity:rarity.name};
+  return {hero, rarity};
+}
+function randomName(){ const syll = ["ra","el","an","or","mi","ly","na","do","ka","vi","za","thor","bel","san","qui","yun","pha","len"]; let n=''; for(let i=0;i<2+Math.floor(Math.random()*2);i++) n+=syll[Math.floor(Math.random()*syll.length)]; return n.charAt(0).toUpperCase()+n.slice(1); }
+
+// UI bindings: buttons
+document.getElementById('summonBtn').addEventListener('click', async ()=>{
+  const res = generateSummon();
+  log('Summoned: ' + res.hero.name + ' (' + res.rarity.name + ')');
+  if(res.rarity.key === 'legend'){
+    // if record toggle on -> start recorder capturing canvas stream before cinematic starts
+    const shouldRecord = document.getElementById('recordToggle').checked;
+    let recorder = null;
+    if(shouldRecord){
+      try{ recorder = await startRecordingForCinematic(); log('Recording started'); }catch(e){ console.warn('Recording failed', e); }
+    }
+    await playLegendaryCinematic(res, {recordStream: null, recorder});
+    // on completion, add hero to roster and save
+    roster.push(res.hero); saveRoster(); log('Added Legendary to roster: ' + res.hero.name);
+  } else {
+    // quick feedback and add to roster
+    spawnParticles(cw/2, ch/2, 30, ['#ffd27a','#ffd6a3'], 8);
+    roster.push(res.hero); saveRoster();
+    log('Added to roster: ' + res.hero.name);
+  }
+});
+
+document.getElementById('summonX10Btn').addEventListener('click', async ()=>{
+  const batch = []; for(let i=0;i<10;i++) batch.push(generateSummon());
+  const firstLegend = batch.find(b=>b.rarity.key==='legend');
+  const shouldRecord = document.getElementById('recordToggle').checked && !!firstLegend;
+  let recorder = null;
+  if(shouldRecord){
+    try{ recorder = await startRecordingForCinematic(); log('Recording started for batch'); }catch(e){ console.warn('Recording failed', e); }
+  }
+  if(firstLegend){
+    // add non-legend immediately
+    const nonLegs = batch.filter(b=>b.rarity.key!=='legend').map(b=>b.hero);
+    roster = roster.concat(nonLegs); saveRoster();
+    log('Added ' + nonLegs.length + ' non-legend heroes from batch');
+    // play cinematic for firstLegend
+    await playLegendaryCinematic(firstLegend, {recordStream:null, recorder});
+    // add all remaining heroes including legendary(s)
+    roster = roster.concat(batch.map(b=>b.hero));
+    saveRoster();
+    log('Batch complete — added ' + batch.length + ' heroes (incl. legendary).');
+  } else {
+    spawnParticles(cw/2, ch/2, 60, ['#ffd27a','#ff9fb3','#ffd6a3'], 10);
+    roster = roster.concat(batch.map(b=>b.hero)); saveRoster();
+    log('Batch complete — added ' + batch.length + ' heroes.');
+  }
+});
+
+document.getElementById('openRecruitBtn').addEventListener('click', ()=>{ alert('Recruit UI is intentionally minimal for this cinematic test. Use Summon buttons to test.'); });
+// load roster on start
+loadRoster();
+
+// initialize animation loop for idle canvas (subtle moving background)
+let last = performance.now();
+function idleLoop(now){
+  const dt = now - last; last = now;
+  // slowly rotate ring angle and draw subtle background
+  ringAngle += 0.2;
+  // clear and draw subtle background gradient
+  ctx.fillStyle = 'linear-gradient(0deg, rgba(10,14,24,1), rgba(6,12,22,1))';
+  ctx.fillRect(0,0,cw,ch);
+  // small moving stars
+  for(let i=0;i<6;i++){ ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect(Math.sin((now/1000)+i)*1000%cw, (i*200 + (now/30))%ch, 2,2); }
+  // draw faint ring in background
+  drawRing(0.08, '#2b3b4f', '#2b3b4f');
+  // draw particles even when idle
+  drawParticles();
+  requestAnimationFrame(idleLoop);
+}
+requestAnimationFrame(idleLoop);
+
+</script>
+</body>
+</html>

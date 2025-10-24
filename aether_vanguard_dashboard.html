@@ -1,0 +1,273 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aether Vanguard — Dashboard Mockup</title>
+<style>
+  :root{
+    --bg:#071024;
+    --card:#0f2540;
+    --muted:#9fb4d3;
+    --accent:#6fe7d9;
+    --glass: rgba(255,255,255,0.04);
+    --glass-2: rgba(255,255,255,0.02);
+    --glass-border: rgba(255,255,255,0.06);
+    --danger:#ff7a7a;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#031027 0%, var(--bg) 60%);color:#e8f3ff;}
+  .app{display:grid;grid-template-columns:360px 1fr 380px;grid-template-rows:72px 1fr;gap:18px;padding:20px;box-sizing:border-box;height:100vh;}
+  header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:12px;border-radius:12px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 6px 18px rgba(4,10,20,0.6);border:1px solid var(--glass-border)}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:0.6px}
+  .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(45deg,var(--accent),#6b8df2);display:flex;align-items:center;justify-content:center;color:#012;box-shadow:0 6px 18px rgba(111,231,217,0.08);font-weight:800}
+  .search{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .search input{background:var(--glass);border:1px solid var(--glass-border);padding:10px 12px;border-radius:10px;color:var(--muted);outline:none;width:320px}
+  /* Left column */
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:16px;border-radius:12px;border:1px solid var(--glass-border);display:flex;flex-direction:column;gap:12px;height:100%;box-shadow: inset 0 1px 0 rgba(255,255,255,0.02)}
+  .player-card{display:flex;gap:12px;align-items:center}
+  .avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(180deg,#234 10%, #456 90%);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow: inset 0 -6px 16px rgba(0,0,0,0.4)}
+  .pname{font-size:16px}
+  .level{background:linear-gradient(90deg,#ffd27a,#ffb86b);color:#072;border-radius:8px;padding:6px 8px;font-weight:700}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+  .stat{background:var(--glass-2);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);font-size:13px;color:var(--muted)}
+  .sanctum{margin-top:6px;padding:10px;background:linear-gradient(180deg, rgba(111,231,217,0.04), transparent);border-radius:8px;border:1px solid rgba(111,231,217,0.06);}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,#0f2b45, #102d4a);border:1px solid var(--glass-border);cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#6b8df2);color:#012;font-weight:700;border:none}
+  /* Center map & actions */
+  .map-area{border-radius:12px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid var(--glass-border);display:flex;flex-direction:column;gap:12px}
+  .mini-stats{display:flex;gap:10px}
+  .mini-card{flex:1;padding:10px;border-radius:10px;background:var(--card);border:1px solid rgba(255,255,255,0.02);color:var(--muted);font-size:13px}
+  .map{flex:1;border-radius:10px;background:linear-gradient(180deg,#081224,#072038);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,0.3)}
+  .map .placeholder{opacity:0.6;text-align:center;color:var(--muted)}
+  .rifts{position:absolute;left:18px;bottom:18px;display:flex;flex-direction:column;gap:8px}
+  .rift{background:linear-gradient(90deg,#6fe7d9, #6b8df2);padding:8px 10px;border-radius:10px;color:#012;font-weight:700;border:1px solid rgba(0,0,0,0.2)}
+  .actions{display:flex;gap:8px;align-items:center}
+  .action-col{display:flex;flex-direction:column;gap:8px}
+  .action-tile{padding:10px;border-radius:10px;background:var(--glass);border:1px solid var(--glass-border);min-width:160px;text-align:center}
+  .ability{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+  .ability .name{font-weight:700}
+  .ability .cost{font-size:12px;color:var(--muted)}
+  /* Right column */
+  .rightcol{display:flex;flex-direction:column;gap:12px}
+  .panel{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid var(--glass-border);}
+  .leaders{display:flex;flex-direction:column;gap:8px}
+  .leader-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--glass-2);border:1px solid rgba(255,255,255,0.02)}
+  .small{font-size:12px;color:var(--muted)}
+  footer{grid-column:1/4;display:flex;justify-content:center;align-items:center;color:var(--muted);font-size:12px;opacity:0.8}
+  /* responsive */
+  @media (max-width:1100px){
+    .app{grid-template-columns:1fr;grid-template-rows:72px auto auto;overflow:auto}
+    header{grid-column:1/2}
+    footer{grid-column:1/2}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><div class="mark">AV</div><div><div style="font-size:16px">Aether Vanguard</div><div class="small">Geo-RPG · Tactical · Alliance</div></div></div>
+    <div class="search">
+      <input id="searchInput" placeholder="Find region, player or rift..." />
+      <button class="btn" onclick="quickScan()">Quick Scan</button>
+      <button class="btn primary" onclick="openDeploy()">Deploy</button>
+    </div>
+  </header>
+  <aside class="sidebar panel">
+    <div class="player-card">
+      <div class="avatar" id="avatar">B</div>
+      <div>
+        <div class="pname">Nguyen Khanh Bang <span class="level">Lv 18</span></div>
+        <div class="small">Wanderer Knight · Aether Faction</div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat">HP <strong style="float:right">1,240</strong></div>
+      <div class="stat">ATK <strong style="float:right">192</strong></div>
+      <div class="stat">DEF <strong style="float:right">83</strong></div>
+      <div class="stat">SPD <strong style="float:right">34</strong></div>
+    </div>
+    <div class="sanctum">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="small">Sanctum</div><div class="small">Citadel: 3/5</div></div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn" onclick="openSanctum()">Open</button>
+        <button class="btn" onclick="inviteAlly()">Invite</button>
+      </div>
+    </div>
+    <div style="margin-top:auto">
+      <div class="small" style="margin-bottom:8px">Quick Menu</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="btn" onclick="openRoster()">Roster</div>
+        <div class="btn" onclick="openQuests()">Quests</div>
+        <div class="btn" onclick="openCraft()">Craft</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="map-area panel">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="mini-card">Season: <strong>Verdant Eclipse</strong></div>
+        <div class="mini-card">Region Control: <strong>Aether Alliance</strong></div>
+        <div class="mini-card">Local Influence: <strong>Rank 7</strong></div>
+      </div>
+      <div class="small">Server Time: <span id="timeNow"></span></div>
+    </div>
+    <div class="map" id="map">
+      <div class="placeholder">
+        <h2>-- Aether Map (Prototype) --</h2>
+        <div class="small">Map tiles will show rifts, shrines, sanctums, and AI Wanderers. Click a rift to preview event.</div>
+      </div>
+      <div class="rifts">
+        <div class="rift" onclick="openRift('Shattered Corinth')">Rift: Shattered Corinth</div>
+        <div class="rift" onclick="openRift('Moonwell Breach')">Rift: Moonwell Breach</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="action-col">
+        <div class="action-tile">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Active Party</div>
+              <div style="font-weight:800">Bang · Aether Knight</div>
+              <div class="small">3 Heroes · 1 Summon</div>
+            </div>
+            <div style="text-align:right"><div class="small">Power</div><div style="font-weight:800">1,830</div></div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn" onclick="viewParty()">View</button>
+            <button class="btn primary" onclick="enterBattle()">Battle</button>
+          </div>
+        </div>
+
+        <div class="action-tile">
+          <div class="small">Abilities</div>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            <div class="ability"><div class="name">Aether Slash</div><div class="cost">Cost 12 EP</div></div>
+            <div class="ability"><div class="name">Rune Shield</div><div class="cost">Cost 8 EP</div></div>
+            <div class="ability"><div class="name">Temporal Step</div><div class="cost">Cost 18 EP</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+        <div class="action-tile" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center">
+          <div style="font-weight:800;font-size:18px">Event Preview</div>
+          <div class="small" style="margin-top:8px">No event selected. Click a Rift on the map to preview rewards and difficulty.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="action-tile" style="flex:1"><div class="small">Recent Activity</div><div style="margin-top:8px" id="activityLog"></div></div>
+          <div class="action-tile" style="width:200px"><div class="small">Nearby Allies</div><div style="margin-top:8px" id="nearbyAllies"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <aside class="rightcol">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:800">Alliance — Aether Union</div><div class="small">Members: 128 · Rank: Gold</div></div>
+        <div style="text-align:right"><div class="small">Contribution</div><div style="font-weight:800">3,240</div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn" onclick="openAlliance()">Open</button>
+        <button class="btn" onclick="viewWar()">War Board</button>
+        <button class="btn primary" onclick="donate()">Donate</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Leaderboard</div>
+        <div class="small">Local</div>
+      </div>
+      <div class="leaders" id="leaderboard">
+        <!-- rows injected by JS -->
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Quick Deploy</div>
+        <div class="small">1x Free · 2x Boost</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="quickDeploy()">Deploy Now</button>
+        <button class="btn" onclick="planRoute()">Plan Route</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <footer>Prototype UI — Aether Vanguard · Mockup generated for user request</footer>
+</div>
+
+<script>
+// small interactive behaviors for the mockup
+function $(id){return document.getElementById(id)}
+function nowTime(){
+  const d=new Date();
+  const s=d.toLocaleString();
+  $('timeNow').innerText=s;
+}
+nowTime(); setInterval(nowTime,1000);
+
+const leaderboard=[
+  {name:'AetherUnion',player:'Lyra',score:3420},
+  {name:'Wanderers',player:'Cai',score:2980},
+  {name:'NomadGuild',player:'Mira',score:2710},
+  {name:'IronHearth',player:'Dae',score:2480},
+  {name:'SkyWard',player:'Rin',score:2240},
+];
+function renderLeaderboard(){
+  const el=$('leaderboard'); el.innerHTML='';
+  leaderboard.forEach((r,i)=>{
+    const row=document.createElement('div'); row.className='leader-row';
+    row.innerHTML=`<div style="width:28px;text-align:center;font-weight:800">${i+1}</div><div style="flex:1"><div style="font-weight:700">${r.player}</div><div class="small">${r.name}</div></div><div style="font-weight:800">${r.score}</div>`;
+    el.appendChild(row);
+  });
+}
+renderLeaderboard();
+
+function openRift(name){
+  logActivity('Previewed rift: '+name);
+  alert('Event Preview — '+name+'\\nDifficulty: ★★★★☆\\nRewards: 1200 XP · Rare Rune · 1 Aether Shard');
+}
+function enterBattle(){ logActivity('Entered battle at '+new Date().toLocaleTimeString()); alert('Battle Demo: Tactical combat would launch here. (Prototype)'); }
+function openSanctum(){ alert('Open Sanctum — show base UI (prototype)'); }
+function inviteAlly(){ alert('Invite sent to nearby allies (prototype)'); }
+function viewParty(){ alert('Party view (prototype) — manage heroes, loadouts, summons'); }
+function quickScan(){ logActivity('Performed quick scan'); alert('Quick Scan: found 2 rifts nearby.'); }
+function openAlliance(){ alert('Alliance panel opens (prototype)'); }
+function viewWar(){ alert('War Board opens (prototype)'); }
+function donate(){ alert('Donate — open contribution modal (prototype)'); }
+function quickDeploy(){ logActivity('Deployed to nearest rift'); alert('Deployed! Good luck, Wanderer.'); }
+function planRoute(){ alert('Route planner (prototype) — set waypoints and auto-run'); }
+function openDeploy(){ alert('Deploy modal (prototype)'); }
+
+function logActivity(msg){
+  const el=$('activityLog');
+  const entry=document.createElement('div');
+  entry.className='small';
+  entry.style.marginBottom='6px';
+  entry.innerText=new Date().toLocaleTimeString()+ ' — ' + msg;
+  el.prepend(entry);
+  // keep only last 10
+  while(el.children.length>10) el.removeChild(el.lastChild);
+}
+// sample nearby allies
+$('nearbyAllies').innerHTML = '<div class="small">Lyra (5km) · Cai (2.1km) · Mira (1.2km)</div>';
+
+// set avatar initial
+$('avatar').innerText = 'B';
+
+// handle search enter
+$('searchInput').addEventListener('keydown', function(e){
+  if(e.key==='Enter'){ logActivity('Searched: ' + this.value); alert('Search results for: '+this.value); }
+});
+</script>
+</body>
+</html>

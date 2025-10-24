@@ -1,0 +1,304 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aether Vanguard — Legendary Cinematic Recruit</title>
+<style>
+  :root{
+    --bg:#071024; --muted:#9fb4d3; --accent:#6fe7d9; --accent-2:#6b8df2;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#03061a 0%, #071024 60%);color:#e8f3ff;font-family:Inter,system-ui,Arial,sans-serif;overflow:hidden}
+  .app{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:stretch}
+  header{height:68px;display:flex;align-items:center;padding:12px 18px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.03)}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:700}
+  main{flex:1;display:flex;gap:18px;padding:18px;box-sizing:border-box}
+  .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);width:360px}
+  .center{flex:1;display:flex;flex-direction:column;gap:12px}
+  .map{flex:1;border-radius:12px;background:linear-gradient(180deg,#07122a,#061428);display:flex;align-items:center;justify-content:center;position:relative;border:1px solid rgba(255,255,255,0.03)}
+  .small{font-size:13px;color:#9fb4d3}
+  .btn{padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,#0b2a45,#0f2f53);border:1px solid rgba(255,255,255,0.03);color:#e8f3ff;cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,#6fe7d9,#6b8df2);color:#012;font-weight:700;border:none}
+  /* Recruit cinematic overlay */
+  #cinematicOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:200;pointer-events:none}
+  #cinematicBG{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%, rgba(255,230,180,0.06), rgba(0,0,0,0.6));backdrop-filter:blur(2px);}
+  .summonStage{position:relative;width:760px;max-width:90%;height:420px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .summonCircle{width:520px;height:520px;border-radius:50%;position:absolute;mix-blend-mode:screen;filter:drop-shadow(0 12px 40px rgba(255,200,120,0.08))}
+  .circleLayer{position:absolute;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);}
+  .heroCard{width:360px;height:260px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));backdrop-filter:blur(2px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;transform-origin:center;box-shadow:0 18px 80px rgba(0,0,0,0.6);pointer-events:auto}
+  .heroName{font-weight:900;font-size:22px;margin-top:10px;color:#fff}
+  .rarityLabel{margin-top:8px;padding:6px 12px;border-radius:10px;font-weight:800}
+  .legendary{background:linear-gradient(90deg,#ffd27a,#ff9fb3);color:#072}
+  /* skip btn */
+  .skipBtn{position:absolute;right:22px;top:22px;z-index:210;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);cursor:pointer;color:#e8f3ff}
+  /* confetti canvas overlays */
+  #confettiCanvas{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:205;pointer-events:none}
+  /* subtle camera shake container */
+  .shake{position:relative}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><div class="logo">Aether Vanguard — <span class="small" style="margin-left:8px">Legendary Cinematic Demo</span></div></header>
+  <main>
+    <div class="panel">
+      <div style="font-weight:800;margin-bottom:8px">Roster (persistent)</div>
+      <div class="small" id="rosterCount">Loading...</div>
+      <div style="margin-top:12px"><button class="btn" onclick="openRecruit()">Open Recruit</button></div>
+    </div>
+    <div class="center shake">
+      <div class="map" id="mapArea">
+        <div style="text-align:center;color:#9fb4d3"><div style="font-size:20px;font-weight:800">Aether Map (Prototype)</div><div class="small">Center stage for cinematic summons.</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div style="font-weight:800;margin-bottom:8px">Controls</div>
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <button class="btn primary" onclick="startSummon()">Summon (single)</button>
+        <button class="btn" onclick="startSummonX10(true)">Summon x10 (auto-add)</button>
+        <div class="small" style="margin-top:8px">Note: Legendary results will trigger a full cinematic with confetti & layered sounds.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- cinematic overlay elements -->
+<div id="cinematicOverlay" aria-hidden="true">
+  <div id="cinematicBG"></div>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="summonStage" id="summonStage">
+    <!-- dynamic summon circle layers (canvas drawn for runes) -->
+    <div class="summonCircle" id="circle1"></div>
+    <div class="summonCircle" id="circle2"></div>
+
+    <!-- hero card that will animate in for legendary reveals -->
+    <div class="heroCard" id="heroCard" style="opacity:0;transform:scale(0.6) translateY(40px);pointer-events:none">
+      <div id="heroIcon" style="width:120px;height:120px;border-radius:12px;background:linear-gradient(45deg,#345,#567);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:48px">?</div>
+      <div class="heroName" id="heroName">—</div>
+      <div class="rarityLabel legendary" id="heroRarity">LEGENDARY</div>
+    </div>
+
+    <button class="skipBtn" id="skipBtn" onclick="skipCinematic()">Skip</button>
+  </div>
+</div>
+
+<script>
+// This file extends the recruit prototype with a full cinematic for Legendary summons.
+// It uses an internal lightweight summon generator and localStorage for roster persistence.
+// Confetti uses a canvas with simple particle physics. WebAudio generates layered tones for Legendary.
+const STORAGE_KEY = 'aether_vanguard_roster_v1_cinematic';
+
+// simple seeded roster load/save (if none, create minimal)
+let roster = [];
+function loadRoster(){ try{ const raw=localStorage.getItem(STORAGE_KEY); roster = raw? JSON.parse(raw): [{id:'h0',name:'Bang',class:'Aether Knight',power:1830}]; updateRosterUI(); }catch(e){ roster=[ ]; updateRosterUI(); } }
+function saveRoster(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(roster)); updateRosterUI(); }
+function updateRosterUI(){ document.getElementById('rosterCount').innerText = roster.length + ' heroes in roster'; }
+
+// lightweight summoning functions (reused logic, but simplified)
+const classes = ['Aether Knight','Rune Caller','Nomad Archer','Chrono Sage','Techno Mystic'];
+const rarityTable = [
+  {name:'Common',key:'common',stars:2,weight:60,freq:420},
+  {name:'Uncommon',key:'uncommon',stars:3,weight:25,freq:520},
+  {name:'Rare',key:'rare',stars:4,weight:10,freq:640},
+  {name:'Epic',key:'epic',stars:5,weight:4,freq:780},
+  {name:'Legendary',key:'legend',stars:6,weight:1,freq:980}
+];
+function weightedRandom(items){ const total=items.reduce((s,i)=>s+i.weight,0); let r=Math.random()*total; for(const it of items){ if(r < it.weight) return it; r -= it.weight; } return items[0]; }
+function randomName(){ const syll = ["ra","el","an","or","mi","ly","na","do","ka","vi","za","thor","bel","san","qui","yun","pha","len"]; let n=''; for(let i=0;i<2+Math.floor(Math.random()*2);i++) n+=syll[Math.floor(Math.random()*syll.length)]; return n.charAt(0).toUpperCase()+n.slice(1); }
+function generateSummon(){ const r = weightedRandom(rarityTable); const cls = classes[Math.floor(Math.random()*classes.length)]; const base={hp:600,atk:100,def:60,spd:20}; const rmult=1 + (r.stars-2)*0.18 + (Math.random()*0.18); const hp=Math.round(base.hp*rmult+Math.random()*200); const atk=Math.round(base.atk*rmult+Math.random()*60); const def=Math.round(base.def*rmult+Math.random()*40); const spd=Math.round(base.spd*rmult+Math.random()*20); const power=Math.round(hp*0.8 + atk*3 + def*2 + spd*4); return {hero:{id:'n'+Date.now()+'_'+Math.floor(Math.random()*9999),name:randomName(),class:cls,level:1,power, hp,atk,def,spd}, rarity:r}; }
+
+// WebAudio setup for cinematic tones
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+function playLegendarySound(){
+  try{
+    const ctx = ensureAudio();
+    const t0 = ctx.currentTime;
+    // two layered oscillators + bell-ish overtone using triangle + sine
+    const o1 = ctx.createOscillator(); o1.type='sine'; o1.frequency.value = 220;
+    const o2 = ctx.createOscillator(); o2.type='triangle'; o2.frequency.value = 440;
+    const g = ctx.createGain(); g.gain.value = 0.0001;
+    o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+    // envelope
+    g.gain.linearRampToValueAtTime(0.18, t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+3.4);
+    o1.start(t0); o2.start(t0);
+    o1.stop(t0+3.5); o2.stop(t0+3.5);
+    // chime overlay (short bells)
+    for(let i=0;i<4;i++){
+      const bell = ctx.createOscillator(); bell.type='sine'; bell.frequency.value = 880 + i*110;
+      const gb = ctx.createGain(); gb.gain.value = 0.0001;
+      bell.connect(gb); gb.connect(ctx.destination);
+      gb.gain.linearRampToValueAtTime(0.08, t0+0.05 + i*0.09);
+      gb.gain.exponentialRampToValueAtTime(0.0001, t0+1.2 + i*0.09);
+      bell.start(t0+0.01 + i*0.09); bell.stop(t0+1.3 + i*0.09);
+    }
+  }catch(e){ /* ignore if audio blocked */ }
+}
+
+// confetti canvas system — physics based
+const confetti = {canvas:null,ctx:null,particles:[],running:false};
+function initConfetti(){
+  confetti.canvas = document.getElementById('confettiCanvas');
+  confetti.canvas.width = innerWidth; confetti.canvas.height = innerHeight;
+  confetti.ctx = confetti.canvas.getContext('2d');
+  window.addEventListener('resize', ()=>{ confetti.canvas.width=innerWidth; confetti.canvas.height=innerHeight; });
+}
+function spawnConfettiBurst(count=120){
+  if(!confetti.ctx) initConfetti();
+  const colors = ['#ffd27a','#ff9fb3','#ffd6a3','#ffb86b','#fff2d9'];
+  for(let i=0;i<count;i++){
+    confetti.particles.push({
+      x: Math.random()*confetti.canvas.width,
+      y: -20 - Math.random()*160,
+      vx: (Math.random()-0.5)*8,
+      vy: Math.random()*2 + 2,
+      size: 6 + Math.random()*10,
+      rot: Math.random()*360,
+      vr: (Math.random()-0.5)*0.2,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      life: 0
+    });
+  }
+  if(!confetti.running) { confetti.running = true; requestAnimationFrame(confettiLoop); }
+}
+function confettiLoop(){
+  const ctx = confetti.ctx; const cw = confetti.canvas.width, ch = confetti.canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  for(let i=confetti.particles.length-1;i>=0;i--){
+    const p = confetti.particles[i];
+    p.vy += 0.12; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life += 1;
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+    ctx.restore();
+    if(p.y > ch + 60 || p.life > 400) confetti.particles.splice(i,1);
+  }
+  if(confetti.particles.length>0) requestAnimationFrame(confettiLoop); else confetti.running=false;
+}
+
+// cinematic timeline helpers
+let cinematicPlaying = false;
+let cinematicSkipRequested = false;
+function playLegendaryCinematic(result, onComplete){
+  cinematicPlaying = true; cinematicSkipRequested = false;
+  const overlay = document.getElementById('cinematicOverlay'); overlay.style.display='flex';
+  overlay.style.pointerEvents = 'auto';
+  const stage = document.getElementById('summonStage');
+  const heroCard = document.getElementById('heroCard');
+  const heroIcon = document.getElementById('heroIcon');
+  const heroName = document.getElementById('heroName');
+  const heroRarity = document.getElementById('heroRarity');
+  // prepare visuals
+  heroIcon.innerText = result.hero.name.charAt(0);
+  heroName.innerText = result.hero.name + ' · ' + result.hero.class;
+  heroRarity.innerText = 'LEGENDARY';
+  heroRarity.className = 'rarityLabel legendary';
+  // reset transforms & bursts
+  heroCard.style.opacity = 0; heroCard.style.transform = 'scale(0.6) translateY(40px)';
+  document.querySelectorAll('.summonCircle').forEach((el,i)=>{ el.style.opacity = 0; el.style.transform = 'scale(0.2) rotate(0deg)'; el.style.background = 'radial-gradient(circle at 50% 40%, rgba(111,231,217,0.06), rgba(107,141,242,0.04))'; });
+  // timeline (7.5s sequence)
+  // 0.0 - 0.8s : darken + circle grow
+  const circle1 = document.getElementById('circle1'), circle2 = document.getElementById('circle2');
+  circle1.style.transition = 'transform 900ms cubic-bezier(.2,.9,.2,1), opacity 800ms'; circle2.style.transition = 'transform 1200ms cubic-bezier(.2,.9,.2,1), opacity 1000ms';
+  setTimeout(()=>{ circle1.style.opacity=1; circle1.style.transform='scale(1) rotate(18deg)'; circle1.style.background='conic-gradient(rgba(255,215,122,0.14), rgba(255,159,179,0.06))'; }, 80);
+  setTimeout(()=>{ circle2.style.opacity=0.95; circle2.style.transform='scale(0.92) rotate(-12deg)'; circle2.style.background='conic-gradient(rgba(255,159,179,0.12), rgba(255,210,170,0.06))'; }, 260);
+  // subtle map shake
+  const shakeRoot = document.querySelector('.shake');
+  let shakeInterval = setInterval(()=>{ shakeRoot.style.transform = `translate(${(Math.random()-0.5)*6}px, ${(Math.random()-0.5)*6}px)`; }, 90);
+  setTimeout(()=>{ clearInterval(shakeInterval); shakeRoot.style.transform=''; }, 1100);
+  // 0.9 - 1.8s : particles & whoosh, small glow
+  setTimeout(()=>{ spawnConfettiBurst(80); playLegendarySound(); }, 900);
+  // 1.8 - 2.6s : hero card zoom in
+  setTimeout(()=>{
+    heroCard.style.transition = 'transform 900ms cubic-bezier(.16,.9,.3,1), opacity 900ms';
+    heroCard.style.opacity = 1; heroCard.style.transform = 'scale(1) translateY(0px)';
+  }, 1800);
+  // golden light pulse
+  setTimeout(()=>{ document.getElementById('cinematicBG').style.transition = 'opacity 900ms'; document.getElementById('cinematicBG').style.opacity = '1'; }, 1600);
+  // big confetti burst and harmonic chime
+  setTimeout(()=>{ spawnConfettiBurst(160); playLegendarySound(); }, 2300);
+  // end sequence: slow fade & close
+  setTimeout(()=>{
+    if(cinematicSkipRequested){ finalize(); return; }
+    heroCard.style.transition = 'opacity 800ms'; heroCard.style.opacity = 0;
+    document.getElementById('cinematicBG').style.opacity = '0';
+    setTimeout(()=> finalize(), 1200);
+  }, 5200);
+
+  // handle skip
+  function finalize(){
+    cinematicPlaying = false; cinematicSkipRequested = false;
+    overlay.style.display='none'; overlay.style.pointerEvents='none';
+    // ensure confetti runs briefly then stops naturally
+    if(typeof onComplete==='function') onComplete();
+  }
+  // provide ability to skip externally
+  window.skipCinematic = ()=>{ if(!cinematicPlaying) return; cinematicSkipRequested = true; finalize(); };
+  // show skip button
+  document.getElementById('skipBtn').style.display='block';
+}
+
+// public function to call skip
+function skipCinematic(){ if(typeof window.skipCinematic==='function') window.skipCinematic(); }
+
+// start summon (single) - integrates cinematic when Legendary pulled
+function startSummon(){
+  const res = generateSummon();
+  // if legendary -> play cinematic, then add to roster on completion
+  if(res.rarity.key === 'legend'){
+    playLegendaryCinematic(res, ()=>{ roster.push(res.hero); saveRoster(); alert('Legendary added: ' + res.hero.name); updateRosterUI(); });
+  } else {
+    // non-legendary flows: small confetti + tone + add
+    spawnConfettiBurst(20);
+    try{ const ctx = ensureAudio(); playQuickTone(res.rarity.freq || 420); }catch(e){}
+    roster.push(res.hero); saveRoster(); alert(res.rarity.name + ' summoned: ' + res.hero.name); updateRosterUI();
+  }
+}
+
+// quick tone helper for non-legend
+function playQuickTone(freq){
+  try{
+    const ctx = ensureAudio(); const t = ctx.currentTime;
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type='sine'; o.frequency.value = freq; o.connect(g); g.connect(ctx.destination);
+    g.gain.value = 0.0001; g.gain.linearRampToValueAtTime(0.12, t+0.01); g.gain.exponentialRampToValueAtTime(0.0001, t+0.6);
+    o.start(t); o.stop(t+0.7);
+  }catch(e){}
+}
+
+// summon x10 (auto-add if true)
+function startSummonX10(autoAdd=false){
+  const batch = []; for(let i=0;i<10;i++) batch.push(generateSummon());
+  // if any legendary in batch, play cinematic for first legendary found, then add rest after cinematic completes
+  const firstLegend = batch.find(b=>b.rarity.key==='legend');
+  if(firstLegend){
+    // add non-legendary immediately, but wait to add the legendary until cinematic completes
+    const nonLegs = batch.filter(b=>b.rarity.key!=='legend').map(b=>b.hero);
+    roster = roster.concat(nonLegs); saveRoster(); updateRosterUI();
+    playLegendaryCinematic(firstLegend, ()=>{
+      // add the legendary and any remaining (if multiple legends, add them now)
+      const remaining = batch.map(b=>b.hero);
+      roster = roster.concat(remaining); saveRoster(); updateRosterUI();
+      alert('Batch complete — added ' + batch.length + ' heroes (including Legendary).');
+    });
+  } else {
+    // no legendary: small fanfare and add all
+    spawnConfettiBurst(60);
+    try{ playQuickTone(640); }catch(e){}
+    roster = roster.concat(batch.map(b=>b.hero)); saveRoster(); updateRosterUI();
+    alert('Batch complete — added ' + batch.length + ' heroes.');
+  }
+}
+
+// initialize on load
+window.addEventListener('load', ()=>{ loadRoster(); initConfetti(); document.getElementById('cinematicOverlay').style.display='none'; });
+</script>
+</body>
+</html>

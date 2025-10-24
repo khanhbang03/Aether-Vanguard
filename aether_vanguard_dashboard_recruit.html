@@ -1,0 +1,643 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aether Vanguard — Recruit Demo</title>
+<style>
+  :root{
+    --bg:#071024;
+    --card:#0f2540;
+    --muted:#9fb4d3;
+    --accent:#6fe7d9;
+    --accent-2:#6b8df2;
+    --glass: rgba(255,255,255,0.04);
+    --glass-2: rgba(255,255,255,0.02);
+    --glass-border: rgba(255,255,255,0.06);
+    --danger:#ff7a7a;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#031027 0%, var(--bg) 60%);color:#e8f3ff;}
+  .app{display:grid;grid-template-columns:360px 1fr 380px;grid-template-rows:72px 1fr;gap:18px;padding:20px;box-sizing:border-box;height:100vh;}
+  header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:12px;border-radius:12px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 6px 18px rgba(4,10,20,0.6);border:1px solid var(--glass-border)}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:0.6px}
+  .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(45deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#012;box-shadow:0 6px 18px rgba(111,231,217,0.08);font-weight:800}
+  .search{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .search input{background:var(--glass);border:1px solid var(--glass-border);padding:10px 12px;border-radius:10px;color:var(--muted);outline:none;width:320px}
+  /* Left column */
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:16px;border-radius:12px;border:1px solid var(--glass-border);display:flex;flex-direction:column;gap:12px;height:100%;box-shadow: inset 0 1px 0 rgba(255,255,255,0.02)}
+  .player-card{display:flex;gap:12px;align-items:center}
+  .avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(180deg,#234 10%, #456 90%);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow: inset 0 -6px 16px rgba(0,0,0,0.4)}
+  .pname{font-size:16px}
+  .level{background:linear-gradient(90deg,#ffd27a,#ffb86b);color:#072;border-radius:8px;padding:6px 8px;font-weight:700}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+  .stat{background:var(--glass-2);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);font-size:13px;color:var(--muted)}
+  .sanctum{margin-top:6px;padding:10px;background:linear-gradient(180deg, rgba(111,231,217,0.04), transparent);border-radius:8px;border:1px solid rgba(111,231,217,0.06);}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,#0f2b45, #102d4a);border:1px solid var(--glass-border);cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#012;font-weight:700;border:none}
+  /* Center map & actions */
+  .map-area{border-radius:12px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid var(--glass-border);display:flex;flex-direction:column;gap:12px}
+  .mini-stats{display:flex;gap:10px}
+  .mini-card{flex:1;padding:10px;border-radius:10px;background:var(--card);border:1px solid rgba(255,255,255,0.02);color:var(--muted);font-size:13px}
+  .map{flex:1;border-radius:10px;background:linear-gradient(180deg,#081224,#072038);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,0.3)}
+  .map .placeholder{opacity:0.6;text-align:center;color:var(--muted)}
+  .rifts{position:absolute;left:18px;bottom:18px;display:flex;flex-direction:column;gap:8px}
+  .rift{background:linear-gradient(90deg,var(--accent), var(--accent-2));padding:8px 10px;border-radius:10px;color:#012;font-weight:700;border:1px solid rgba(0,0,0,0.2)}
+  .actions{display:flex;gap:8px;align-items:center}
+  .action-col{display:flex;flex-direction:column;gap:8px}
+  .action-tile{padding:10px;border-radius:10px;background:var(--glass);border:1px solid var(--glass-border);min-width:160px;text-align:center}
+  .ability{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+  .ability .name{font-weight:700}
+  .ability .cost{font-size:12px;color:var(--muted)}
+  /* Right column */
+  .rightcol{display:flex;flex-direction:column;gap:12px}
+  .panel{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid var(--glass-border);}
+  .leaders{display:flex;flex-direction:column;gap:8px}
+  .leader-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--glass-2);border:1px solid rgba(255,255,255,0.02)}
+  .small{font-size:12px;color:var(--muted)}
+  footer{grid-column:1/4;display:flex;justify-content:center;align-items:center;color:var(--muted);font-size:12px;opacity:0.8}
+  /* roster modal & hero sheet styles */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:60}
+  .modal{width:920px;max-width:95%;background:linear-gradient(180deg,#07162b, #08182e);border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 18px 60px rgba(2,6,15,0.8);display:flex;gap:12px;color:#e8f3ff}
+  .roster-list{width:320px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);max-height:640px;overflow:auto}
+  .hero-row{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid rgba(255,255,255,0.02);margin-bottom:8px}
+  .hero-row:hover{transform:translateY(-2px);transition:all .12s}
+  .hero-thumb{width:56px;height:56px;border-radius:10px;background:linear-gradient(45deg,#345,#567);display:flex;align-items:center;justify-content:center;font-weight:800}
+  .hero-details{flex:1;padding:8px}
+  .hero-name{font-weight:800}
+  .sheet{flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:10px}
+  .sheet .row{display:flex;gap:10px;align-items:center}
+  .stat-bar{height:12px;background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+  .stat-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:40%}
+  .abilities-list{display:flex;flex-direction:column;gap:8px}
+  .ability-card{padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+  .gear-shelf{display:flex;gap:8px;flex-wrap:wrap}
+  .gear-item{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);min-width:96px;text-align:center}
+  .btn.small{padding:6px 8px;font-size:13px}
+  /* recruit modal specifics */
+  .recruit-modal .summon-stage{height:260px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;position:relative}
+  .crystal{width:110px;height:140px;background:linear-gradient(180deg,#7bf0e0,#5e86ff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#012;box-shadow:0 18px 60px rgba(111,231,217,0.08);transform:translateY(0);}
+  .sparkle{position:absolute;inset:0;pointer-events:none;opacity:0.9}
+  .particle{position:absolute;border-radius:50%;opacity:0.9;animation:rise 2.2s linear infinite}
+  @keyframes rise{0%{transform:translateY(0) scale(0.4);opacity:0.9}100%{transform:translateY(-160px) scale(1.0);opacity:0}}
+  .result-card{margin-top:8px;padding:12px;border-radius:10px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02);min-width:320px;text-align:center}
+  .rarity-1{filter:grayscale(0.4);opacity:0.9}
+  .rarity-2{box-shadow:0 8px 30px rgba(111,231,217,0.06)}
+  .rarity-3{box-shadow:0 10px 40px rgba(107,141,242,0.08)}
+  .rarity-4{box-shadow:0 14px 60px rgba(255,186,59,0.12)}
+  .rarity-5{box-shadow:0 18px 80px rgba(255,96,96,0.18)}
+  .rarity-label{font-weight:900;padding:6px 10px;border-radius:8px;background:linear-gradient(90deg,#ffd27a,#ffb86b);color:#072;display:inline-block;margin-top:8px}
+  @media (max-width:1100px){
+    .app{grid-template-columns:1fr;grid-template-rows:72px auto auto;overflow:auto}
+    header{grid-column:1/2}
+    footer{grid-column:1/2}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><div class="mark">AV</div><div><div style="font-size:16px">Aether Vanguard</div><div class="small">Geo-RPG · Tactical · Alliance</div></div></div>
+    <div class="search">
+      <input id="searchInput" placeholder="Find region, player or rift..." />
+      <button class="btn" onclick="quickScan()">Quick Scan</button>
+      <button class="btn primary" onclick="openDeploy()">Deploy</button>
+    </div>
+  </header>
+  <aside class="sidebar panel">
+    <div class="player-card">
+      <div class="avatar" id="avatar">B</div>
+      <div>
+        <div class="pname">Nguyen Khanh Bang <span class="level">Lv 18</span></div>
+        <div class="small">Wanderer Knight · Aether Faction</div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat">HP <strong style="float:right">1,240</strong></div>
+      <div class="stat">ATK <strong style="float:right">192</strong></div>
+      <div class="stat">DEF <strong style="float:right">83</strong></div>
+      <div class="stat">SPD <strong style="float:right">34</strong></div>
+    </div>
+    <div class="sanctum">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="small">Sanctum</div><div class="small">Citadel: 3/5</div></div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn" onclick="openSanctum()">Open</button>
+        <button class="btn" onclick="inviteAlly()">Invite</button>
+      </div>
+    </div>
+    <div style="margin-top:auto">
+      <div class="small" style="margin-bottom:8px">Quick Menu</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="btn" onclick="openRoster()">Roster</div>
+        <div class="btn" onclick="openQuests()">Quests</div>
+        <div class="btn" onclick="openCraft()">Craft</div>
+        <div class="btn primary" onclick="openRecruit()">Recruit Hero</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="map-area panel">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="mini-card">Season: <strong>Verdant Eclipse</strong></div>
+        <div class="mini-card">Region Control: <strong>Aether Alliance</strong></div>
+        <div class="mini-card">Local Influence: <strong>Rank 7</strong></div>
+      </div>
+      <div class="small">Server Time: <span id="timeNow"></span></div>
+    </div>
+    <div class="map" id="map">
+      <div class="placeholder">
+        <h2>-- Aether Map (Prototype) --</h2>
+        <div class="small">Map tiles will show rifts, shrines, sanctums, and AI Wanderers. Click a rift to preview event.</div>
+      </div>
+      <div class="rifts">
+        <div class="rift" onclick="openRift('Shattered Corinth')">Rift: Shattered Corinth</div>
+        <div class="rift" onclick="openRift('Moonwell Breach')">Rift: Moonwell Breach</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="action-col">
+        <div class="action-tile">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Active Party</div>
+              <div style="font-weight:800">Bang · Aether Knight</div>
+              <div class="small">3 Heroes · 1 Summon</div>
+            </div>
+            <div style="text-align:right"><div class="small">Power</div><div style="font-weight:800">1,830</div></div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn" onclick="viewParty()">View</button>
+            <button class="btn primary" onclick="enterBattle()">Battle</button>
+          </div>
+        </div>
+
+        <div class="action-tile">
+          <div class="small">Abilities</div>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            <div class="ability"><div class="name">Aether Slash</div><div class="cost">Cost 12 EP</div></div>
+            <div class="ability"><div class="name">Rune Shield</div><div class="cost">Cost 8 EP</div></div>
+            <div class="ability"><div class="name">Temporal Step</div><div class="cost">Cost 18 EP</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+        <div class="action-tile" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center">
+          <div style="font-weight:800;font-size:18px">Event Preview</div>
+          <div class="small" style="margin-top:8px">No event selected. Click a Rift on the map to preview rewards and difficulty.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="action-tile" style="flex:1"><div class="small">Recent Activity</div><div style="margin-top:8px" id="activityLog"></div></div>
+          <div class="action-tile" style="width:200px"><div class="small">Nearby Allies</div><div style="margin-top:8px" id="nearbyAllies"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <aside class="rightcol">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:800">Alliance — Aether Union</div><div class="small">Members: 128 · Rank: Gold</div></div>
+        <div style="text-align:right"><div class="small">Contribution</div><div style="font-weight:800">3,240</div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn" onclick="openAlliance()">Open</button>
+        <button class="btn" onclick="viewWar()">War Board</button>
+        <button class="btn primary" onclick="donate()">Donate</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Leaderboard</div>
+        <div class="small">Local</div>
+      </div>
+      <div class="leaders" id="leaderboard"></div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Quick Deploy</div>
+        <div class="small">1x Free · 2x Boost</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="quickDeploy()">Deploy Now</button>
+        <button class="btn" onclick="planRoute()">Plan Route</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <footer>Prototype UI — Aether Vanguard · Recruit Demo</footer>
+</div>
+
+<!-- Roster modal (reused) -->
+<div class="modal-backdrop" id="rosterModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Roster and Hero Sheet">
+    <div class="roster-list" id="rosterList">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Roster</div>
+        <div><button class="btn small" onclick="closeRoster()">Close</button></div>
+      </div>
+      <div id="heroRows"></div>
+      <div style="margin-top:12px" class="small">Tip: Click a hero to open the detailed hero sheet. Drag to reorder (prototype).</div>
+    </div>
+
+    <div class="sheet" id="heroSheet">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div id="sheetName" style="font-size:18px;font-weight:900">Select a hero</div>
+          <div id="sheetClass" class="small">Class · Level</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="small">Power</div>
+          <div style="font-weight:900;font-size:18px" id="sheetPower">—</div>
+        </div>
+      </div>
+
+      <div class="row" style="gap:16px;display:flex;align-items:center">
+        <div style="width:120px">
+          <div class="hero-thumb" id="sheetThumb" style="width:120px;height:120px;border-radius:10px;font-size:28px">?</div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1">
+              <div class="small">HP</div>
+              <div class="stat-bar" title="HP"><div id="hpFill" class="stat-fill" style="width:60%"></div></div>
+              <div class="small" id="hpText">740 / 1240</div>
+            </div>
+            <div style="flex:1">
+              <div class="small">ATK</div>
+              <div class="stat-bar"><div id="atkFill" class="stat-fill" style="width:40%"></div></div>
+              <div class="small" id="atkText">192</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px">
+            <div style="flex:1">
+              <div class="small">DEF</div>
+              <div class="stat-bar"><div id="defFill" class="stat-fill" style="width:25%"></div></div>
+              <div class="small" id="defText">83</div>
+            </div>
+            <div style="flex:1">
+              <div class="small">SPD</div>
+              <div class="stat-bar"><div id="spdFill" class="stat-fill" style="width:34%"></div></div>
+              <div class="small" id="spdText">34</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:800">Abilities</div>
+            <div class="small">EP Cost shown</div>
+          </div>
+          <div class="abilities-list" id="abilitiesList">
+            <!-- abilities injected -->
+          </div>
+        </div>
+
+        <div style="width:260px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:800">Gear</div>
+            <div class="small">Equipped</div>
+          </div>
+          <div class="gear-shelf" id="gearShelf" style="margin-top:8px">
+            <!-- gear injected -->
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;flex-direction:column">
+            <button class="btn primary" onclick="equipBest()">Auto-equip Best</button>
+            <button class="btn" onclick="promoteHero()">Promote (Proto)</button>
+            <button class="btn small" onclick="closeRoster()">Close</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Recruit modal -->
+<div class="modal-backdrop" id="recruitModal">
+  <div class="modal recruit-modal" role="dialog" aria-modal="true" aria-label="Recruit Hero">
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:900">Summon Crystal</div>
+        <div><button class="btn small" onclick="closeRecruit()">Close</button></div>
+      </div>
+      <div class="summon-stage" id="summonStage">
+        <div class="crystal" id="crystal">SUMMON</div>
+        <div class="sparkle" id="sparkleArea"></div>
+        <div class="result-card" id="summonResult" style="display:none">
+          <div id="resultName" style="font-weight:900;font-size:18px">—</div>
+          <div id="resultClass" class="small">—</div>
+          <div id="resultRarity" class="small" style="margin-top:8px"></div>
+          <div id="resultStats" class="small" style="margin-top:6px"></div>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:center">
+            <button class="btn primary" onclick="addSummonToRoster()">Add to Roster</button>
+            <button class="btn" onclick="summonAgain()">Summon Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="width:360px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:8px">
+      <div style="font-weight:800;margin-bottom:8px">Summon Details</div>
+      <div class="small">Costs: 1x Aether Shard (free demo)</div>
+      <div style="margin-top:12px" class="small">Rarity Chances:</div>
+      <div class="small" style="margin-top:6px">Common ★★ — 60% · Uncommon ★★★ — 25% · Rare ★★★★ — 10% · Epic ★★★★★ — 4% · Legendary ★★★★★+ — 1%</div>
+      <div style="margin-top:12px" class="small">Preview possible classes and abilities when summoning.</div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn primary" onclick="startSummon()">Summon (Free)</button>
+        <button class="btn" onclick="summonAgain()">Auto x10 (Demo)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// utility and mock data
+function $(id){return document.getElementById(id)}
+function nowTime(){ const d=new Date(); $('timeNow').innerText=d.toLocaleString(); }
+nowTime(); setInterval(nowTime,1000);
+
+const classes = ['Aether Knight','Rune Caller','Nomad Archer','Chrono Sage','Techno Mystic'];
+const rarityTable = [
+  {name:'Common',stars:2,weight:60,css:'rarity-1'},
+  {name:'Uncommon',stars:3,weight:25,css:'rarity-2'},
+  {name:'Rare',stars:4,weight:10,css:'rarity-3'},
+  {name:'Epic',stars:5,weight:4,css:'rarity-4'},
+  {name:'Legendary',stars:6,weight:1,css:'rarity-5'}
+];
+
+const abilityPool = {
+  'Aether Knight': ['Aether Slash','Bulwark Charge','Vanguard Roar'],
+  'Rune Caller': ['Glyph Burst','Wardbind','Seal of Silence'],
+  'Nomad Archer': ['Piercing Volley','Hawk Eye','Rain of Bolts'],
+  'Chrono Sage': ['Temporal Step','Time Dilation','Echo Shift'],
+  'Techno Mystic': ['Drone Strike','Nano Repair','Arc Field']
+};
+
+// initial heroes (same as before)
+const heroes = [
+  {
+    id: 'h1', name: 'Bang', class: 'Aether Knight', level: 18, power: 1830,
+    hp: 1240, hpCur: 740, atk:192, def:83, spd:34,
+    abilities: [
+      {name:'Aether Slash', cost:12, desc:'Strike with a burst of aether. 120% ATK.'},
+      {name:'Rune Shield', cost:8, desc:'Generate a shield that absorbs damage.'},
+      {name:'Temporal Step', cost:18, desc:'Shift forward in time to act again.'}
+    ],
+    gear: [
+      {slot:'Weapon',name:'Vanguard Blade +3',rarity:'Rare',stat:'+24 ATK'},
+      {slot:'Armor',name:'Knightplate',rarity:'Uncommon',stat:'+50 HP'},
+      {slot:'Amulet',name:'Shard of Dawn',rarity:'Rare',stat:'+8 SPD'}
+    ]
+  },
+  {
+    id: 'h2', name: 'Lyra', class: 'Rune Caller', level: 16, power: 1580,
+    hp: 980, hpCur: 980, atk:142, def:66, spd:29,
+    abilities: [
+      {name:'Glyph Burst', cost:14, desc:'Explode a rune that damages enemies in range.'},
+      {name:'Wardbind', cost:10, desc:'Bind a rune to an ally for bonus resist.'}
+    ],
+    gear: [
+      {slot:'Weapon',name:'Glyphstaff',rarity:'Rare',stat:'+18 ATK'},
+      {slot:'Robe',name:'Mystic Wraps',rarity:'Uncommon',stat:'+40 HP'}
+    ]
+  },
+  {
+    id: 'h3', name: 'Cai', class: 'Nomad Archer', level: 15, power: 1420,
+    hp: 860, hpCur: 650, atk:168, def:54, spd:46,
+    abilities: [
+      {name:'Piercing Volley', cost:10, desc:'Fire arrows that pierce targets.'},
+      {name:'Hawk Eye', cost:6, desc:'Increases crit chance for 2 turns.'}
+    ],
+    gear: [
+      {slot:'Weapon',name:'Nomad Bow',rarity:'Uncommon',stat:'+20 ATK'},
+      {slot:'Boots',name:'Swift Treads',rarity:'Rare',stat:'+12 SPD'}
+    ]
+  }
+];
+
+function renderLeaderboard(){
+  const el=$('leaderboard'); el.innerHTML='';
+  const leaderboard=[
+    {name:'AetherUnion',player:'Lyra',score:3420},
+    {name:'Wanderers',player:'Cai',score:2980},
+    {name:'NomadGuild',player:'Mira',score:2710},
+    {name:'IronHearth',player:'Dae',score:2480},
+    {name:'SkyWard',player:'Rin',score:2240},
+  ];
+  leaderboard.forEach((r,i)=>{
+    const row=document.createElement('div'); row.className='leader-row';
+    row.innerHTML=`<div style="width:28px;text-align:center;font-weight:800">${i+1}</div><div style="flex:1"><div style="font-weight:700">${r.player}</div><div class="small">${r.name}</div></div><div style="font-weight:800">${r.score}</div>`;
+    el.appendChild(row);
+  });
+}
+renderLeaderboard();
+
+// basic app functions reused
+function openRift(name){ logActivity('Previewed rift: '+name); alert('Event Preview — '+name+'\\nDifficulty: ★★★★☆\\nRewards: 1200 XP · Rare Rune · 1 Aether Shard'); }
+function enterBattle(){ logActivity('Entered battle at '+new Date().toLocaleTimeString()); alert('Battle Demo: Tactical combat would launch here. (Prototype)'); }
+function openSanctum(){ alert('Open Sanctum — show base UI (prototype)'); }
+function inviteAlly(){ alert('Invite sent to nearby allies (prototype)'); }
+function viewParty(){ alert('Party view (prototype) — manage heroes, loadouts, summons'); }
+function quickScan(){ logActivity('Performed quick scan'); alert('Quick Scan: found 2 rifts nearby.'); }
+function openAlliance(){ alert('Alliance panel opens (prototype)'); }
+function viewWar(){ alert('War Board opens (prototype)'); }
+function donate(){ alert('Donate — open contribution modal (prototype)'); }
+function quickDeploy(){ logActivity('Deployed to nearest rift'); alert('Deployed! Good luck, Wanderer.'); }
+function planRoute(){ alert('Route planner (prototype) — set waypoints and auto-run'); }
+function openDeploy(){ alert('Deploy modal (prototype)'); }
+
+function logActivity(msg){
+  const el=$('activityLog');
+  const entry=document.createElement('div');
+  entry.className='small';
+  entry.style.marginBottom='6px';
+  entry.innerText=new Date().toLocaleTimeString()+ ' — ' + msg;
+  el.prepend(entry);
+  while(el.children.length>10) el.removeChild(el.lastChild);
+}
+$('nearbyAllies').innerHTML = '<div class="small">Lyra (5km) · Cai (2.1km) · Mira (1.2km)</div>';
+$('avatar').innerText = 'B';
+$('searchInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ logActivity('Searched: ' + this.value); alert('Search results for: '+this.value); } });
+
+// ---------- Roster & hero sheet ----------
+function openRoster(){ $('rosterModal').style.display='flex'; renderRoster(); selectHero(heroes[0].id); }
+function closeRoster(){ $('rosterModal').style.display='none'; }
+
+function renderRoster(){
+  const rows = $('heroRows'); rows.innerHTML='';
+  heroes.forEach(h=>{
+    const r = document.createElement('div'); r.className='hero-row';
+    r.dataset.id=h.id;
+    r.innerHTML = `<div class="hero-thumb">${h.name.charAt(0)}</div>
+      <div class="hero-details"><div class="hero-name">${h.name} <span class="small">Lv ${h.level}</span></div><div class="hero-sub">${h.class}</div></div>
+      <div style="text-align:right"><div style="font-weight:800">${h.power}</div><div class="small">Power</div></div>`;
+    r.addEventListener('click', ()=> selectHero(h.id));
+    rows.appendChild(r);
+  });
+}
+
+function selectHero(id){
+  const h = heroes.find(x=>x.id===id);
+  if(!h) return;
+  $('sheetName').innerText = `${h.name} · Lv ${h.level}`;
+  $('sheetClass').innerText = `${h.class}`;
+  $('sheetPower').innerText = h.power;
+  $('sheetThumb').innerText = h.name.charAt(0);
+  const hpPct = Math.round((h.hpCur/h.hp)*100);
+  $('hpFill').style.width = hpPct + '%';
+  $('hpText').innerText = `${h.hpCur} / ${h.hp}`;
+  $('atkFill').style.width = Math.min(100, Math.round((h.atk/300)*100)) + '%';
+  $('atkText').innerText = h.atk;
+  $('defFill').style.width = Math.min(100, Math.round((h.def/200)*100)) + '%';
+  $('defText').innerText = h.def;
+  $('spdFill').style.width = Math.min(100, Math.round((h.spd/100)*100)) + '%';
+  $('spdText').innerText = h.spd;
+
+  const abl = $('abilitiesList'); abl.innerHTML='';
+  h.abilities.forEach(a=>{
+    const d = document.createElement('div'); d.className='ability-card';
+    d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:800">${a.name}</div><div class="small">Cost ${a.cost || '—'} EP</div></div><div class="small" style="margin-top:6px">${a.desc || ''}</div><div style="margin-top:8px;display:flex;gap:8px"><button class="btn small" onclick="previewAbility('${h.id}','${a.name}')">Preview</button><button class="btn" onclick="upgradeAbility('${h.id}','${a.name}')">Upgrade</button></div>`;
+    abl.appendChild(d);
+  });
+
+  const gs = $('gearShelf'); gs.innerHTML='';
+  (h.gear || []).forEach(g=>{
+    const ge = document.createElement('div'); ge.className='gear-item';
+    ge.innerHTML = `<div style="font-weight:800">${g.name}</div><div class="small">${g.slot} · ${g.rarity}</div><div class="small" style="margin-top:6px">${g.stat}</div><div style="margin-top:8px"><button class="btn small" onclick="unequip('${h.id}','${g.name}')">Unequip</button></div>`;
+    gs.appendChild(ge);
+  });
+}
+
+function previewAbility(heroId, abilityName){ const h = heroes.find(x=>x.id===heroId); const a = h.abilities.find(x=>x.name===abilityName); alert(`Preview — ${a.name}\\n\\n${a.desc || ''}`); }
+function upgradeAbility(heroId, abilityName){ logActivity(`Requested upgrade: ${abilityName} for ${heroId}`); alert('Upgrade queued (prototype) — this would open upgrade materials modal.'); }
+function unequip(heroId, gearName){ logActivity(`Unequipped ${gearName} from ${heroId}`); alert('Unequipped (prototype). Gear moved to inventory.'); }
+function equipBest(){ logActivity('Auto-equipped best gear for active hero'); alert('Auto-equip complete (prototype).'); }
+function promoteHero(){ logActivity('Hero promoted (prototype)'); alert('Promote — shows promotion UI / requirements (prototype).'); }
+
+// ---------- Recruit system ----------
+function openRecruit(){ $('recruitModal').style.display='flex'; resetRecruit(); }
+function closeRecruit(){ $('recruitModal').style.display='none'; }
+
+function resetRecruit(){
+  $('summonResult').style.display='none';
+  $('crystal').innerText = 'SUMMON';
+  $('crystal').className = 'crystal';
+  $('sparkleArea').innerHTML = '';
+  // create initial particles
+  for(let i=0;i<10;i++){ createParticle(); }
+}
+
+function createParticle(){
+  const p = document.createElement('div');
+  p.className='particle';
+  const size = 6 + Math.random()*14;
+  p.style.width = size + 'px'; p.style.height = size + 'px';
+  p.style.left = (20 + Math.random()*70) + '%';
+  p.style.bottom = (10 + Math.random()*30) + 'px';
+  p.style.animationDuration = (1.6 + Math.random()*1.2) + 's';
+  p.style.background = `rgba(${100+Math.random()*155},${150+Math.random()*105},${150+Math.random()*105},${0.8})`;
+  $('sparkleArea').appendChild(p);
+  setTimeout(()=>{ try{ p.remove() }catch(e){} }, 3000);
+}
+
+function weightedRandom(items){
+  const total = items.reduce((s,i)=>s+i.weight,0);
+  let r = Math.random()*total;
+  for(const it of items){
+    if(r < it.weight) return it;
+    r -= it.weight;
+  }
+  return items[0];
+}
+
+function randomName(){
+  const syll = ["ra","el","an","or","mi","ly","na","do","ka","vi","za","thor","bel","san","qui","yun","pha","len"];
+  const len = 2 + Math.floor(Math.random()*2);
+  let name=''; for(let i=0;i<len;i++) name += syll[Math.floor(Math.random()*syll.length)];
+  // capitalize
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+let lastSummon = null;
+
+function startSummon(){
+  resetRecruit();
+  $('crystal').innerText='...';
+  // animate crystal pulse
+  $('crystal').animate([{transform:'translateY(0) scale(1)'},{transform:'translateY(-8px) scale(1.06)'},{transform:'translateY(0) scale(1)'}], {duration:900,iterations:3});
+  // create particles during animation
+  const interval = setInterval(()=>{ createParticle(); }, 220);
+  setTimeout(()=>{
+    clearInterval(interval);
+    // determine rarity & class
+    const rarity = weightedRandom(rarityTable);
+    const cls = classes[Math.floor(Math.random()*classes.length)];
+    const abilityList = abilityPool[cls];
+    const ability = abilityList[Math.floor(Math.random()*abilityList.length)];
+    // generate stats by rarity multiplier
+    const base = {hp: 600, atk:100, def:60, spd:20};
+    const rmult = 1 + (rarity.stars-2)*0.18 + (Math.random()*0.15);
+    const hp = Math.round(base.hp * rmult + Math.random()*200);
+    const atk = Math.round(base.atk * rmult + Math.random()*60);
+    const def = Math.round(base.def * rmult + Math.random()*40);
+    const spd = Math.round(base.spd * rmult + Math.random()*20);
+    const power = Math.round(hp*0.8 + atk*3 + def*2 + spd*4);
+    const newHero = {
+      id: 'new_' + Date.now(),
+      name: randomName(),
+      class: cls,
+      level: 1,
+      power: power,
+      hp: hp, hpCur: hp, atk: atk, def: def, spd: spd,
+      abilities: [{name: ability, cost: 10, desc: 'Starter ability: ' + ability}],
+      gear: []
+    };
+    lastSummon = {hero:newHero, rarity:rarity};
+    // show result
+    $('resultName').innerText = newHero.name + ' · Lv 1';
+    $('resultClass').innerText = newHero.class;
+    $('resultRarity').innerHTML = `<span class="rarity-label">${rarity.name} · ${'★'.repeat(rarity.stars)}</span>`;
+    $('resultStats').innerText = `HP ${newHero.hp} · ATK ${newHero.atk} · DEF ${newHero.def} · SPD ${newHero.spd}`;
+    $('summonResult').style.display='block';
+    // visual rarity effect on crystal
+    setTimeout(()=>{
+      $('crystal').innerText = newHero.name.charAt(0);
+      $('crystal').classList.add(rarity.css);
+    }, 180);
+    logActivity('Summoned: ' + newHero.name + ' — ' + newHero.class + ' (' + rarity.name + ')');
+  }, 1200);
+}
+
+function summonAgain(){ startSummon(); }
+
+function addSummonToRoster(){
+  if(!lastSummon || !lastSummon.hero) return;
+  heroes.push(lastSummon.hero);
+  renderRoster();
+  logActivity('Added to roster: ' + lastSummon.hero.name + ' (' + lastSummon.rarity.name + ')');
+  alert('Added ' + lastSummon.hero.name + ' to roster.');
+  // auto-open roster to show new addition
+  openRoster();
+  // clear lastSummon to avoid duplicate adds
+  lastSummon = null;
+}
+
+// ---------- small helpers ----------
+document.addEventListener('DOMContentLoaded', ()=>{ renderRoster(); });
+</script>
+</body>
+</html>
